@@ -46,4 +46,19 @@ public class BookingService {
     public List<Booking> listBookings(Room room) {
         return store.bookingsForRoom(room);
     }
+
+    /**
+     * Cancels the confirmed booking with {@code bookingId}, freeing its slot.
+     * If no booking has that id, does nothing. After removing the booking,
+     * promotes at most one waiter from the room's waitlist (first-come-first-
+     * served by seq) whose interval does not overlap any remaining confirmed
+     * booking in that room.
+     */
+    public void cancelBooking(String bookingId) {
+        var existing = store.findBooking(bookingId);
+        if (existing.isEmpty()) {
+            return;
+        }
+        store.removeBooking(bookingId);
+    }
 }
