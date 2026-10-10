@@ -6,6 +6,7 @@ import edu.cmu.cs214.booking.domain.TimeInterval;
 import edu.cmu.cs214.booking.domain.User;
 import edu.cmu.cs214.booking.domain.WaitlistEntry;
 import edu.cmu.cs214.booking.repo.BookingStore;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -59,6 +60,21 @@ public class BookingService {
         if (existing.isEmpty()) {
             return;
         }
+        Booking cancelled = existing.get();
         store.removeBooking(bookingId);
+
+        Room room = cancelled.room();
+        List<Booking> remaining = store.bookingsForRoom(room);
+        store.waitlistForRoom(room).stream()
+                .sorted(Comparator.comparingInt(WaitlistEntry::seq))
+                .filter(entry -> remaining.stream()
+                        .noneMatch(b -> b.interval().overlaps(entry.interval())))
+                .findFirst()
+                .ifPresent(entry -> {
+                    Booking promoted = new Booking(
+                            "b" + nextBookingSeq++, room, entry.user(), entry.interval());
+                    store.addBooking(promoted);
+                    store.removeWaitlistEntry(entry.id());
+                });
     }
 }
